@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gourmet Express | Menú</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- ========================================== -->
+  <!-- 1. ESTRUCTURA HTML                         -->
+  <!-- ========================================== -->
+
+  <div class="header">
+    <h1>🔥 Gourmet Express</h1>
+    <p>Catálogo Digital & Pedidos Directos</p>
+  </div>
+
+  <div class="controls">
+    <input type="text" id="buscador" class="search-input" placeholder="🔍 Buscar plato..." oninput="filtrar()">
+    
+    <div class="categories">
+      <button class="cat-btn active" onclick="filtrarCategoria('todos', this)">Todos</button>
+      <button class="cat-btn" onclick="filtrarCategoria('hamburguesas', this)">Hamburguesas</button>
+      <button class="cat-btn" onclick="filtrarCategoria('enrollados', this)">Enrollados</button>
+      <button class="cat-btn" onclick="filtrarCategoria('perros', this)">Perros Calientes</button>
+    </div>
+  </div>
+
+  <div class="grid-container" id="gridProductos"></div>
+
+  <div class="modal" id="modalProducto">
+    <div class="modal-content">
+      <span class="close-modal" onclick="cerrarModal()">&times;</span>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+
+  <!-- ========================================== -->
+  <!-- 2. JAVASCRIPT CON TUS NUEVOS LINKS Y NÚMERO-->
+  <!-- ========================================== -->
+  <script>
+    // 📌 TU NÚMERO REAL CONFIGURADO (Sin ceros al inicio, sin espacios y con el 58 de Venezuela)
+    const TELEFONO_WHATSAPP = "584142433406";
+
+    const productos = [
+      {
+        id: 1,
+        nombre: "Enrollado Especial Steak",
+        categoria: "enrollados",
+        precio: 15,
+        descripcion: "Lomo de aguja a la parrilla, pollo crispy, tocineta ahumada y queso.",
+        imagenes: [
+          "https://i.postimg.cc/bY4dByDn/enrro1.jpg",
+          "https://i.postimg.cc/xjBq4fJy/enrro2.jpg"
+        ]
+      },
+      {
+        id: 2,
+        nombre: "Hamburguesa Doble Cheddar",
+        categoria: "hamburguesas",
+        precio: 12,
+        descripcion: "300g de carne de res artesanal, doble queso cheddar y tocineta.",
+        imagenes: [
+          "https://i.postimg.cc/qMngfPyh/hambur1.jpg",
+          "https://i.postimg.cc/zXW3msKR/hambur2.jpg"
+        ]
+      },
+      {
+        id: 3,
+        nombre: "Perro Caliente Supremo",
+        categoria: "perros",
+        precio: 8,
+        descripcion: "Salchicha gigante, papitas, queso fundido y salsas.",
+        imagenes: [
+          "https://i.postimg.cc/65RTskn4/perro-caliente.jpg"
+        ]
+      }
+    ];
+
+    let categoriaActual = 'todos';
+
+    function renderizar(lista) {
+      const contenedor = document.getElementById("gridProductos");
+      contenedor.innerHTML = "";
+
+      if(lista.length === 0) {
+        contenedor.innerHTML = "<p style='grid-column: 1/-1; text-align:center;'>No se encontraron productos.</p>";
+        return;
+      }
+
+      lista.forEach(p => {
+        const textoMsg = `Hola! Vengo del menú web y quiero pedir: *${p.nombre}* ($${p.precio}).`;
+        const urlWS = `https://api.whatsapp.com/send?phone=${TELEFONO_WHATSAPP}&text=${encodeURIComponent(textoMsg)}`;
+
+        let imgsHTML = p.imagenes.map(img => `<img src="${img}" alt="${p.nombre}">`).join('');
+        let btnsCarrusel = p.imagenes.length > 1 ? `
+          <button class="carousel-btn prev" onclick="moverCarrusel(${p.id}, -1, event)">&lt;</button>
+          <button class="carousel-btn next" onclick="moverCarrusel(${p.id}, 1, event)">&gt;</button>
+        ` : '';
+
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          <div class="carousel-container" onclick="abrirModal(${p.id})">
+            <div class="carousel-track" id="track-${p.id}">${imgsHTML}</div>
+            ${btnsCarrusel}
+          </div>
+          <div class="card-body">
+            <h3 class="card-title" onclick="abrirModal(${p.id})" style="cursor:pointer">${p.nombre}</h3>
+            <p class="card-desc">${p.descripcion.substring(0, 75)}...</p>
+            <div class="card-footer">
+              <span class="price">$${p.precio}</span>
+              <a href="${urlWS}" target="_blank" class="btn-ws">Comprar</a>
+            </div>
+          </div>
+        `;
+        contenedor.appendChild(card);
+      });
+    }
+
+    const indicesCarrusel = {};
+    function moverCarrusel(id, direccion, evento) {
+      evento.stopPropagation();
+      const producto = productos.find(p => p.id === id);
+      if (!indicesCarrusel[id]) indicesCarrusel[id] = 0;
+
+      indicesCarrusel[id] += direccion;
+      if (indicesCarrusel[id] < 0) indicesCarrusel[id] = producto.imagenes.length - 1;
+      if (indicesCarrusel[id] >= producto.imagenes.length) indicesCarrusel[id] = 0;
+
+      const track = document.getElementById(`track-${id}`);
+      track.style.transform = `translateX(-${indicesCarrusel[id] * 100}%)`;
+    }
+
+    function abrirModal(id) {
+      const p = productos.find(prod => prod.id === id);
+      const textoMsg = `Hola! Quiero pedir: *${p.nombre}* ($${p.precio}).`;
+      const urlWS = `https://api.whatsapp.com/send?phone=${TELEFONO_WHATSAPP}&text=${encodeURIComponent(textoMsg)}`;
+
+      const modalBody = document.getElementById("modalBody");
+      modalBody.innerHTML = `
+        <img src="${p.imagenes[0]}" style="width:100%; height:220px; object-fit:cover;">
+        <div class="modal-body" style="padding:15px;">
+          <h2>${p.nombre}</h2>
+          <h3 style="color:#0f172a; margin: 8px 0;">$${p.precio}</h3>
+          <p style="color:#64748b; font-size:0.9rem; margin-bottom:15px;">${p.descripcion}</p>
+          <a href="${urlWS}" target="_blank" class="btn-ws" style="width:100%; text-align:center; justify-content:center; padding:12px;">Pedir por WhatsApp</a>
+        </div>
+      `;
+      document.getElementById("modalProducto").style.display = "flex";
+    }
+
+    function cerrarModal() {
+      document.getElementById("modalProducto").style.display = "none";
+    }
+
+    function filtrar() {
+      const texto = document.getElementById("buscador").value.toLowerCase();
+      const filtrados = productos.filter(p => {
+        const coincideTexto = p.nombre.toLowerCase().includes(texto) || p.descripcion.toLowerCase().includes(texto);
+        const coincideCat = categoriaActual === 'todos' || p.categoria === categoriaActual;
+        return coincideTexto && coincideCat;
+      });
+      renderizar(filtrados);
+    }
+
+    function filtrarCategoria(cat, btn) {
+      categoriaActual = cat;
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      filtrar();
+    }
+
+    renderizar(productos);
+  </script>
+
+
+  <!-- ========================================== -->
+  <!-- 3. DISEÑO CSS                              -->
+  <!-- ========================================== -->
+  <style>
+    :root {
+      --bg: #ffffff;
+      --card-bg: #f8fafc;
+      --accent: #25d366;
+      --accent-hover: #1da851;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 15px; }
+
+    .header { text-align: center; margin: 20px 0; }
+    .header h1 { font-size: 1.8rem; color: var(--text); margin-bottom: 5px; }
+    .header p { color: var(--text-muted); font-size: 0.9rem; }
+
+    .controls { display: flex; flex-direction: column; gap: 12px; max-width: 600px; margin: 0 auto 20px; }
+    .search-input { width: 100%; padding: 12px 15px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; color: var(--text); outline: none; }
+    
+    .categories { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; }
+    .cat-btn { background: var(--card-bg); border: 1px solid var(--border); color: var(--text); padding: 8px 16px; border-radius: 20px; cursor: pointer; white-space: nowrap; font-size: 0.85rem; }
+    .cat-btn.active { background: #0f172a; color: #fff; font-weight: 600; border-color: #0f172a; }
+
+    .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; max-width: 1000px; margin: 0 auto; }
+    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+
+    .carousel-container { position: relative; width: 100%; height: 200px; overflow: hidden; background: #e2e8f0; }
+    .carousel-track { display: flex; width: 100%; height: 100%; transition: transform 0.3s ease-in-out; }
+    .carousel-track img { width: 100%; height: 100%; object-fit: cover; flex-shrink: 0; }
+    
+    .carousel-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.6); color: white; border: none; padding: 8px 12px; cursor: pointer; border-radius: 50%; z-index: 2; }
+    .carousel-btn.prev { left: 8px; }
+    .carousel-btn.next { right: 8px; }
+
+    .card-body { padding: 15px; display: flex; flex-direction: column; flex-grow: 1; }
+    .card-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+    .card-desc { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px; flex-grow: 1; }
+    .card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+    .price { font-size: 1.2rem; font-weight: 700; color: #0f172a; }
+
+    .btn-ws { background-color: var(--accent); color: #fff; border: none; padding: 10px 15px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.9rem; }
+
+    .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.6); z-index: 100; justify-content: center; align-items: center; padding: 15px; }
+    .modal-content { background: #ffffff; border-radius: 12px; max-width: 450px; width: 100%; overflow: hidden; border: 1px solid var(--border); position: relative; }
+    .close-modal { position: absolute; top: 10px; right: 15px; font-size: 1.5rem; color: #0f172a; cursor: pointer; z-index: 10; background: rgba(255,255,255,0.8); width: 32px; height: 32px; border-radius: 50%; text-align: center; line-height: 30px; }
+  </style>
+
+</body>
+</html>
